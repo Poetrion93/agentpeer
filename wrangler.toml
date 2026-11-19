@@ -1,0 +1,21 @@
+# Placeholders only. Do not put real account IDs, tokens, or emails here.
+# Create the D1 database later and replace <D1_DATABASE_ID>.
+# Account: <ACCOUNT_ID>
+name = "agentpeer"
+main = "src/index.ts"
+compatibility_date = "2026-11-19"
+compatibility_flags = ["nodejs_compat"]
+
+# account_id = "<ACCOUNT_ID>"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "agentpeer"
+database_id = "<D1_DATABASE_ID>"
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[vars]
+TENANT_ID = "ounce"
+LOOP_TOKEN = "agentpeer"
