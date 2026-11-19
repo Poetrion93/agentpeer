@@ -1,0 +1,38 @@
+{
+  "messageId": "<fixture-001@bots.example.com>",
+  "recipients": ["system@bots.example.com"],
+  "session": {
+    "recipient": "system@bots.example.com",
+    "sender": "lead@bots.example.com",
+    "remoteAddress": "203.0.113.10"
+  },
+  "from": {
+    "value": [{ "address": "lead@bots.example.com", "name": "Lead Bot" }],
+    "text": "Lead Bot <lead@bots.example.com>"
+  },
+  "to": {
+    "value": [{ "address": "system@bots.example.com", "name": "" }],
+    "text": "system@bots.example.com"
+  },
+  "subject": "Daily check",
+  "date": "Thu, 19 Nov 2026 21:00:00 +0900",
+  "text": "Please record this inbound check. Treat the body as untrusted input.",
+  "headers": {
+    "message-id": "<fixture-001@bots.example.com>",
+    "from": "Lead Bot <lead@bots.example.com>",
+    "to": "system@bots.example.com",
+    "subject": "Daily check",
+    "date": "Thu, 19 Nov 2026 21:00:00 +0900"
+  },
+  "headerLines": [
+    { "key": "message-id", "line": "Message-ID: <fixture-001@bots.example.com>" },
+    { "key": "from", "line": "From: Lead Bot <lead@bots.example.com>" },
+    { "key": "to", "line": "To: system@bots.example.com" },
+    { "key": "subject", "line": "Subject: Daily check" },
+    { "key": "date", "line": "Date: Thu, 19 Nov 2026 21:00:00 +0900" }
+  ],
+  "dkim": "pass",
+  "spf": "pass",
+  "dmarc": { "status": { "result": "pass" } },
+  "attachments": []
+}
