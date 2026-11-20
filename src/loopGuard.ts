@@ -1,4 +1,4 @@
-import { matchesAutoNotice } from "./notices.ts";
+import { matchesHardAutoNotice, matchesSuspectAutoNotice } from "./notices.ts";
 import type { Store } from "./db.ts";
 import { headerValue } from "./normalize.ts";
 import {
@@ -16,6 +16,8 @@ export interface LoopDecision {
   block: boolean;
   status?: Extract<MessageStatus, "blocked_loop" | "blocked_autonotice">;
   reason?: string;
+  /** Set on a non-blocking decision when only a suspect (human-plausible) notice pattern matched. */
+  suspect?: string;
 }
 
 export function parseHop(headers: Record<string, string>): number {
@@ -72,7 +74,7 @@ export function inspectHeaders(msg: NormalizedMessage, loopToken: string): LoopD
     return { block: true, status: "blocked_autonotice", reason: `system sender: ${from}` };
   }
 
-  const notice = matchesAutoNotice(msg.subject, msg.text);
+  const notice = matchesHardAutoNotice(msg.subject, msg.text);
   if (notice) {
     return { block: true, status: "blocked_autonotice", reason: `auto-notice pattern: ${notice}` };
   }
@@ -82,7 +84,8 @@ export function inspectHeaders(msg: NormalizedMessage, loopToken: string): LoopD
     return { block: true, status: "blocked_loop", reason: `hop ${hop} > ${MAX_HOP}` };
   }
 
-  return { block: false };
+  const suspect = matchesSuspectAutoNotice(msg.subject, msg.text);
+  return suspect ? { block: false, suspect } : { block: false };
 }
 
 /**
@@ -146,5 +149,7 @@ export async function loopGuard(
 ): Promise<LoopDecision> {
   const header = inspectHeaders(msg, loopToken);
   if (header.block) return header;
-  return inspectRate(store, msg);
+  const rate = await inspectRate(store, msg);
+  if (rate.block || !header.suspect) return rate;
+  return { ...rate, suspect: header.suspect };
 }

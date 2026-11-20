@@ -1,9 +1,11 @@
 {
-  "_comment": "Auto-notice patterns (regex source, case-insensitive) tested against subject + body. A match is blocked_autonotice. Seeded from a real 2026-11-19 Hermes 'No home channel' ping-pong.",
-  "patterns": [
+  "_comment": "Auto-notice patterns (regex source, case-insensitive) tested against subject + body. hard_block: bot fixed notices, always blocked_autonotice even with no auto-reply headers (seeded from a real 2026-11-19 Hermes 'No home channel' ping-pong). suspect: phrases humans also write; never blocked on their own, only marked with a suspect_autonotice event.",
+  "hard_block": [
     "no home channel",
     "does not have a home channel",
-    "홈\\s*채널이 없",
+    "홈\\s*채널이 없"
+  ],
+  "suspect": [
     "out of office",
     "out-of-office",
     "부재중"

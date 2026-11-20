@@ -165,9 +165,9 @@ describe("loop guard", () => {
   });
 
   it.each([
-    ["out of office", "Out of Office: back Monday", "I am away."],
-    ["부재중", "자동 응답", "현재 부재중입니다."],
     ["no home channel", "Re: task", "Error: No home channel is set."],
+    ["does not have a home channel", "Re: task", "This chat does not have a home channel."],
+    ["홈 채널이 없", "Re: task", "홈 채널이 없습니다."],
   ])("blocks the %s notice pattern even without auto headers", async (_n, subject, text) => {
     const r = await processOne(
       fePayload({ from: BOT_A, to: SYSTEM, subject, text }),
@@ -176,6 +176,45 @@ describe("loop guard", () => {
     );
     expect(r.status).toBe("blocked_autonotice");
     expect(r.reason).toMatch(/auto-notice pattern/);
+  });
+
+  it.each([
+    ["out of office", "Out of Office: back Monday", "I am away."],
+    ["부재중", "안부", "다음 주에 잠깐 부재중일 예정이라 미리 알려드려요."],
+  ])("delivers %s without auto headers and marks it suspect", async (_n, subject, text) => {
+    const d = deps();
+    const r = await processOne(
+      fePayload({ from: BOT_A, to: SYSTEM, subject, text }),
+      SYSTEM,
+      d,
+    );
+    expect(r.status).toBe("delivered");
+    const types = (await d.store.listEvents(r.id)).map((e) => e.type);
+    expect(types).toContain("suspect_autonotice");
+    expect(types).not.toContain("blocked_autonotice");
+  });
+
+  it("still blocks a suspect phrase when an auto-reply header is present", async () => {
+    for (const headers of [{ "auto-submitted": "auto-replied" }, { "x-autorespond": "yes" }] as Record<string, string>[]) {
+      const d = deps();
+      const r = await processOne(
+        fePayload({
+          from: BOT_A,
+          to: SYSTEM,
+          subject: "자동 응답",
+          text: "현재 부재중입니다.",
+          messageId: `<s-${Object.keys(headers)[0]}@bots.example.com>`,
+          headers,
+        }),
+        SYSTEM,
+        d,
+      );
+      expect(r.status).toBe("blocked_autonotice");
+      expect(await d.store.listDeliveries(r.id)).toHaveLength(0);
+      const types = (await d.store.listEvents(r.id)).map((e) => e.type);
+      expect(types).toContain("blocked_autonotice");
+      expect(types).not.toContain("suspect_autonotice");
+    }
   });
 
   it("delivers a normal human body with Auto-Submitted: no", async () => {
@@ -218,7 +257,7 @@ describe("loop guard", () => {
   it("records an event for blocked auto-notices and hop 4, and nothing is delivered", async () => {
     const d = deps();
     const notice = await processOne(
-      fePayload({ from: BOT_A, to: SYSTEM, subject: "ooo", text: "부재중", messageId: "<n1@bots.example.com>" }),
+      fePayload({ from: BOT_A, to: SYSTEM, subject: "err", text: "Error: No home channel is set.", messageId: "<n1@bots.example.com>" }),
       SYSTEM,
       d,
     );
