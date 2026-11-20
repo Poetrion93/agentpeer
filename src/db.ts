@@ -15,6 +15,10 @@ export interface Store {
     since: number;
   }): Promise<number>;
   countSenderWindow(input: { fromAddr: string; since: number }): Promise<number>;
+  countPairWindow(input: { fromAddr: string; recipient: string; since: number }): Promise<number>;
+  /** blocked-until epoch ms for the pair, or null if never blocked. */
+  getPairBlock(input: { fromAddr: string; recipient: string }): Promise<number | null>;
+  setPairBlock(input: { fromAddr: string; recipient: string; blockedUntil: number }): Promise<void>;
   insertEvent(row: EventRow): Promise<void>;
   insertDelivery(row: DeliveryRow): Promise<void>;
   listMessages(limit?: number): Promise<MessageRow[]>;
@@ -106,6 +110,37 @@ export function storeFromSql(sql: SqlExec): Store {
         since,
       );
       return Number(row?.c ?? 0);
+    },
+
+    async countPairWindow({ fromAddr, recipient, since }) {
+      const row = await sql.first<{ c: number }>(
+        `SELECT COUNT(*) AS c FROM messages
+         WHERE from_addr = ? AND recipient = ? AND received_at > ?`,
+        fromAddr,
+        recipient,
+        since,
+      );
+      return Number(row?.c ?? 0);
+    },
+
+    async getPairBlock({ fromAddr, recipient }) {
+      const row = await sql.first<{ blocked_until: number }>(
+        `SELECT blocked_until FROM pair_blocks WHERE from_addr = ? AND recipient = ?`,
+        fromAddr,
+        recipient,
+      );
+      return row ? Number(row.blocked_until) : null;
+    },
+
+    async setPairBlock({ fromAddr, recipient, blockedUntil }) {
+      // events has no from/recipient columns, so "blocked until" needs its own tiny table.
+      await sql.run(
+        `INSERT INTO pair_blocks (from_addr, recipient, blocked_until) VALUES (?, ?, ?)
+         ON CONFLICT(from_addr, recipient) DO UPDATE SET blocked_until = excluded.blocked_until`,
+        fromAddr,
+        recipient,
+        blockedUntil,
+      );
     },
 
     async insertEvent(row) {

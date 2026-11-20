@@ -16,11 +16,13 @@ function lowerKeys(headers: Record<string, string>): Record<string, string> {
   return out;
 }
 
-/** Normalize Message-ID to a <id> form. Returns null if missing/blank. */
+/**
+ * Canonical Message-ID: strip all <> and whitespace, lowercase, re-wrap as <id>.
+ * Clean lowercase ids keep their previous <id> form, so stored dedup keys stay valid.
+ * Returns null if missing/blank.
+ */
 export function normalizeMessageId(raw: unknown): string | null {
-  const s = asString(raw).trim();
-  if (!s) return null;
-  const inner = s.replace(/^<|>$/g, "").trim();
+  const inner = asString(raw).replace(/[<>\s]/g, "").toLowerCase();
   if (!inner) return null;
   return `<${inner}>`;
 }
@@ -123,8 +125,10 @@ function detectKind(subject: string, headers: Record<string, string>): MessageKi
   const auto = headerValue(headers, "auto-submitted");
   if (auto && auto.toLowerCase() !== "no") return "auto_notice";
   const prec = headerValue(headers, "precedence").toLowerCase();
-  if (prec === "bulk" || prec === "auto_reply" || prec === "junk") return "auto_notice";
-  if (headerValue(headers, "x-autoreply") || headerValue(headers, "x-auto-response-suppress")) {
+  if (prec === "bulk" || prec === "auto_reply" || prec === "junk" || prec === "list") {
+    return "auto_notice";
+  }
+  if (headerValue(headers, "x-autoreply") || headerValue(headers, "x-autorespond") || headerValue(headers, "x-auto-response-suppress")) {
     return "auto_notice";
   }
   return "human";
@@ -208,6 +212,7 @@ export function headersSubset(headers: Record<string, string>): Record<string, s
     "x-bot-mail-hop",
     "precedence",
     "x-autoreply",
+    "x-autorespond",
     "x-auto-response-suppress",
     "list-id",
     "return-path",

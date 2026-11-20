@@ -1,0 +1,11 @@
+{
+  "_comment": "Auto-notice patterns (regex source, case-insensitive) tested against subject + body. A match is blocked_autonotice. Seeded from a real 2026-11-19 Hermes 'No home channel' ping-pong.",
+  "patterns": [
+    "no home channel",
+    "does not have a home channel",
+    "홈\\s*채널이 없",
+    "out of office",
+    "out-of-office",
+    "부재중"
+  ]
+}

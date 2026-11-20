@@ -1,5 +1,4 @@
 import { webhookPayload } from "../trust.ts";
-import { parseHop } from "../loopGuard.ts";
 import type { DeliveryAdapter } from "./types.ts";
 
 /**
@@ -18,7 +17,6 @@ export const grokTagAdapter: DeliveryAdapter = {
       // No transport yet — treat as stored intent so local tests and dry-runs work.
       return { ok: true, httpStatus: 204, error: "deferred: MAIL_SEND_URL not set" };
     }
-    const hop = parseHop(msg.headers) + 1;
     const body = {
       ...webhookPayload(
         {
@@ -35,7 +33,8 @@ export const grokTagAdapter: DeliveryAdapter = {
       ),
       headers: {
         "Auto-Submitted": "auto-generated",
-        "X-Agentpeer-Hop": String(hop),
+        "X-Bot-Mail-Hop": String(ctx.nextHop),
+        "X-Agentpeer-Hop": String(ctx.nextHop),
         "X-Loop": ctx.loopToken,
       },
     };

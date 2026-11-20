@@ -66,3 +66,11 @@ CREATE TABLE IF NOT EXISTS events (
 
 CREATE INDEX IF NOT EXISTS idx_events_message ON events(message_id);
 CREATE INDEX IF NOT EXISTS idx_events_type_at ON events(type, at);
+
+-- (from, recipient) pair block: events cannot express "blocked until".
+CREATE TABLE IF NOT EXISTS pair_blocks (
+  from_addr TEXT NOT NULL,
+  recipient TEXT NOT NULL,
+  blocked_until INTEGER NOT NULL,
+  PRIMARY KEY (from_addr, recipient)
+);

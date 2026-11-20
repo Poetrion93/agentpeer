@@ -119,10 +119,15 @@ export interface ProcessResult {
   routeId?: string;
 }
 
+// shortcut: rate limits count rows in the DB time window; upgrade to a dedicated queue when volume grows.
 export const RATE_WINDOW_MS = 10 * 60 * 1000;
+/** Same (from, recipient) pair: max messages per RATE_WINDOW_MS before the pair is blocked. */
+export const RATE_PAIR_LIMIT = 5;
+/** How long a pair stays blocked after exceeding RATE_PAIR_LIMIT. */
+export const RATE_BLOCK_MS = 10 * 60 * 1000;
 export const RATE_THREAD_LIMIT = 5;
 export const RATE_SENDER_LIMIT = 30;
-/** Incoming X-Agentpeer-Hop greater than this is blocked. hop <= 3 is allowed. */
+/** Incoming X-Bot-Mail-Hop / X-Agentpeer-Hop greater than this is blocked. hop <= 3 is allowed. */
 export const MAX_HOP = 3;
 export const MAX_DELIVERY_ATTEMPTS = 3;
 export const TEXT_LIMIT = 4000;

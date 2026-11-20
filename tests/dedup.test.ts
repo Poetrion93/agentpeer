@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { normalizeMessageId } from "../src/normalize.ts";
 import { ingestForwardEmail, processOne } from "../src/pipeline.ts";
 import { BOT_A, BOT_B, SYSTEM, deps, fePayload } from "./helpers.ts";
 
@@ -86,5 +87,48 @@ describe("dedup", () => {
     expect(results).toHaveLength(1);
     expect(results[0].recipient).toBe(SYSTEM);
     expect(results[0].status).toBe("delivered");
+  });
+
+  it("treats bracket/case/whitespace variants of the same Message-ID + recipient as one message", async () => {
+    const d = deps();
+    const variants = ["  <ABC@Bots.Example.COM>  ", "abc@bots.example.com", "<abc @bots.example.com>"];
+    const results = [];
+    for (const [i, messageId] of variants.entries()) {
+      const payload = fePayload({ messageId, from: BOT_A, to: SYSTEM, subject: `v${i}`, text: `v${i}` });
+      const { httpStatus, results: r } = await ingestForwardEmail(payload, d);
+      expect(httpStatus).toBe(200);
+      results.push(r[0]);
+    }
+    expect(results[0].status).toBe("delivered");
+    expect(results[1].status).toBe("duplicate");
+    expect(results[2].status).toBe("duplicate");
+    expect(await d.store.listMessages()).toHaveLength(1);
+    expect((await d.store.getMessage(results[0].id))?.dedup_key).toBe(
+      "<abc@bots.example.com>|system@bots.example.com",
+    );
+  });
+
+  it("normalizes Message-ID to a lowercase <id> and keeps clean ids unchanged", () => {
+    expect(normalizeMessageId("  <ABC@X.COM>  ")).toBe("<abc@x.com>");
+    expect(normalizeMessageId("abc@x.com")).toBe("<abc@x.com>");
+    expect(normalizeMessageId("<once@bots.example.com>")).toBe("<once@bots.example.com>");
+    expect(normalizeMessageId(" <> ")).toBeNull();
+    expect(normalizeMessageId(undefined)).toBeNull();
+  });
+
+  it("same logical Message-ID with a different recipient stays distinct", async () => {
+    const d = deps();
+    const a = await processOne(
+      fePayload({ messageId: "<Fan@bots.example.com>", from: BOT_A, to: [SYSTEM, BOT_B], subject: "f", text: "f" }),
+      SYSTEM,
+      d,
+    );
+    const b = await processOne(
+      fePayload({ messageId: "fan@BOTS.example.com", from: BOT_A, to: [SYSTEM, BOT_B], subject: "f", text: "f" }),
+      BOT_B,
+      d,
+    );
+    expect(a.status).not.toBe("duplicate");
+    expect(b.status).not.toBe("duplicate");
   });
 });
