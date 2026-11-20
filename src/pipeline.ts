@@ -98,6 +98,10 @@ export async function processOne(
     return { id, recipient: msg.recipient, status: loop.status, reason: loop.reason };
   }
 
+  if (loop.suspect) {
+    await record(deps.store, id, "suspect_autonotice", loop.suspect, now);
+  }
+
   const route = matchRoute(deps.routes, msg.recipient);
   const trust = checkTrust(msg.from.addr, route);
   if (!trust.allowed) {
